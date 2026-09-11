@@ -6,7 +6,12 @@ type Props = {
 }
 
 export function AppHeader({ active }: Props) {
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuth()
+  const label =
+    (user?.user_metadata?.display_name as string | undefined) ||
+    user?.email ||
+    user?.id ||
+    ''
 
   return (
     <header className="topbar">
@@ -25,9 +30,16 @@ export function AppHeader({ active }: Props) {
           帳號管理
         </Link>
       </nav>
-      <button type="button" className="ghost" onClick={() => void signOut()}>
-        登出
-      </button>
+      <div className="topbar-user">
+        {label && (
+          <span className="current-user" title={label}>
+            {label}
+          </span>
+        )}
+        <button type="button" className="ghost" onClick={() => void signOut()}>
+          登出
+        </button>
+      </div>
     </header>
   )
 }

@@ -10,7 +10,16 @@ export type MessageDirection = 'in' | 'out'
 export type MessageStatus = 'received' | 'sent' | 'failed'
 export type ScheduledStatus = 'pending' | 'sent' | 'failed' | 'cancelled'
 export type FlowMatchMode = 'exact' | 'contains'
-export type FlowStepType = 'send_text' | 'ask_text' | 'ask_choice' | 'ask_date' | 'ask_time'
+export type FlowStepType =
+  | 'text'
+  | 'buttons'
+  | 'confirm'
+  | 'flex'
+  | 'send_text'
+  | 'ask_text'
+  | 'ask_choice'
+  | 'ask_date'
+  | 'ask_time'
 export type FlowSessionStatus = 'active' | 'completed' | 'cancelled'
 
 export interface Database {
@@ -45,6 +54,7 @@ export interface Database {
           channel_access_token: string
           channel_secret: string
           is_active: boolean
+          created_by: string | null
           created_at: string
           updated_at: string
         }
@@ -55,6 +65,7 @@ export interface Database {
           channel_access_token: string
           channel_secret: string
           is_active?: boolean
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -65,6 +76,7 @@ export interface Database {
           channel_access_token?: string
           channel_secret?: string
           is_active?: boolean
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -334,6 +346,7 @@ export interface Database {
           prompt_text: string
           field_key: string | null
           choices: { label: string; value: string }[]
+          flex_json: Record<string, unknown> | null
           created_at: string
           updated_at: string
         }
@@ -346,6 +359,7 @@ export interface Database {
           prompt_text: string
           field_key?: string | null
           choices?: { label: string; value: string }[]
+          flex_json?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string
         }
@@ -358,6 +372,7 @@ export interface Database {
           prompt_text?: string
           field_key?: string | null
           choices?: { label: string; value: string }[]
+          flex_json?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string
         }
@@ -400,8 +415,37 @@ export interface Database {
         Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
+    Views: {
+      line_channels_list: {
+        Row: {
+          id: string
+          name: string
+          webhook_key: string
+          channel_access_token: string
+          channel_secret: string
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+          is_owner: boolean
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      set_line_channel_active: {
+        Args: { p_id: string; p_active: boolean }
+        Returns: undefined
+      }
+      delete_line_channel: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      ensure_conversation: {
+        Args: { p_line_user_uuid: string }
+        Returns: string
+      }
+    }
     Enums: {
       message_direction: MessageDirection
       message_status: MessageStatus
@@ -416,6 +460,7 @@ export interface Database {
 
 export type LineUser = Database['public']['Tables']['line_users']['Row']
 export type LineChannel = Database['public']['Tables']['line_channels']['Row']
+export type LineChannelListItem = Database['public']['Views']['line_channels_list']['Row']
 export type AdminProfile = Database['public']['Tables']['admin_profiles']['Row']
 export type Conversation = Database['public']['Tables']['conversations']['Row']
 export type Message = Database['public']['Tables']['messages']['Row']

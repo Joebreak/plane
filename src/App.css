@@ -36,6 +36,22 @@
   color: var(--accent-ink);
 }
 
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-left: auto;
+}
+
+.current-user {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 button {
   border: none;
   border-radius: 8px;
@@ -337,6 +353,26 @@ button.ghost {
   font-size: 0.92rem;
 }
 
+.field-hint {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.field-hint.inline-hint {
+  display: inline;
+  margin-left: 0.35rem;
+}
+
+.field-hint code {
+  background: #eef2f6;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
 .channel-form input {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -385,6 +421,50 @@ button.ghost {
 .accounts-panel h3 {
   margin: 0.5rem 0 0;
   font-size: 1rem;
+}
+
+.flow-apply-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background: #e8f8ee;
+  border-radius: 8px;
+  color: var(--accent-ink);
+  border: 1px solid #b7e6c8;
+}
+
+.current-flow-name {
+  color: var(--accent-ink);
+}
+
+.flow-empty {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.flow-item-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.flow-item-selected {
+  border-color: #06c755 !important;
+  box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.25);
+  background: #f0faf4;
+}
+
+.flow-item-selected .conv-item {
+  background: transparent;
+}
+
+.badge.status-editing {
+  background: #06c755;
+  color: #fff;
+  flex-shrink: 0;
 }
 
 @media (max-width: 860px) {

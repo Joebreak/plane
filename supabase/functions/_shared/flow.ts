@@ -8,15 +8,28 @@ import {
 
 export type FlowChoice = { label: string; value: string }
 
+export type FlowStepType =
+  | 'text'
+  | 'buttons'
+  | 'confirm'
+  | 'flex'
+  // legacy (still readable)
+  | 'send_text'
+  | 'ask_text'
+  | 'ask_choice'
+  | 'ask_date'
+  | 'ask_time'
+
 export type FlowStep = {
   id: string
   flow_id: string
   step_key: string
   sort_order: number
-  step_type: 'send_text' | 'ask_text' | 'ask_choice' | 'ask_date' | 'ask_time'
+  step_type: FlowStepType
   prompt_text: string
   field_key: string | null
   choices: FlowChoice[] | null
+  flex_json?: Record<string, unknown> | null
 }
 
 export type FlowDef = {
@@ -42,30 +55,71 @@ function previewOfMessages(messages: Record<string, unknown>[]) {
   const first = messages[0]
   if (!first) return ''
   if (typeof first.text === 'string') return first.text
-  if (first.type === 'template') return String(first.altText ?? '[表單]')
+  if (first.type === 'template' || first.type === 'flex') return String(first.altText ?? '[訊息]')
   return '[訊息]'
 }
 
+function messageActions(choices: FlowChoice[], limit: number) {
+  return choices.slice(0, limit).map((c) => ({
+    type: 'message',
+    label: c.label.slice(0, 20),
+    text: c.value.slice(0, 300),
+  }))
+}
+
 export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
-  if (step.step_type === 'ask_choice') {
-    const choices = (step.choices ?? []).slice(0, 13)
-    const items = choices.map((c) => ({
-      type: 'action',
-      action: {
-        type: 'message',
-        label: c.label.slice(0, 20),
-        text: c.value,
-      },
-    }))
+  const choices = step.choices ?? []
+
+  if (step.step_type === 'buttons' || step.step_type === 'ask_choice') {
+    const actions = messageActions(choices, 4)
+    if (actions.length === 0) {
+      return [{ type: 'text', text: step.prompt_text }]
+    }
     return [
       {
-        type: 'text',
-        text: step.prompt_text,
-        ...(items.length
-          ? {
-              quickReply: { items },
-            }
-          : {}),
+        type: 'template',
+        altText: step.prompt_text,
+        template: {
+          type: 'buttons',
+          text: step.prompt_text.slice(0, 160),
+          actions,
+        },
+      },
+    ]
+  }
+
+  if (step.step_type === 'confirm') {
+    const actions = messageActions(choices, 2)
+    while (actions.length < 2) {
+      actions.push({
+        type: 'message',
+        label: actions.length === 0 ? '是' : '否',
+        text: actions.length === 0 ? '是' : '否',
+      })
+    }
+    return [
+      {
+        type: 'template',
+        altText: step.prompt_text,
+        template: {
+          type: 'confirm',
+          text: step.prompt_text.slice(0, 240),
+          actions,
+        },
+      },
+    ]
+  }
+
+  if (step.step_type === 'flex') {
+    const contents = step.flex_json
+    if (!contents || typeof contents !== 'object') {
+      return [{ type: 'text', text: step.prompt_text || '（Flex 尚未設定）' }]
+    }
+    return [
+      {
+        type: 'flex',
+        altText: step.prompt_text || '訊息',
+        contents,
       },
     ]
   }
@@ -112,8 +166,27 @@ export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
     ]
   }
 
-  // send_text / ask_text
+  // text / ask_text / send_text
   return [{ type: 'text', text: step.prompt_text }]
+}
+
+function isChoiceStep(step: FlowStep) {
+  return (
+    step.step_type === 'buttons' ||
+    step.step_type === 'confirm' ||
+    step.step_type === 'ask_choice'
+  )
+}
+
+function isTextAnswerStep(step: FlowStep) {
+  return (
+    step.step_type === 'text' ||
+    step.step_type === 'ask_text' ||
+    step.step_type === 'flex' ||
+    step.step_type === 'ask_date' ||
+    step.step_type === 'ask_time' ||
+    step.step_type === 'send_text'
+  )
 }
 
 async function loadSteps(flowId: string): Promise<FlowStep[]> {
@@ -274,7 +347,7 @@ export async function handleFlowIncoming(params: {
       return false
     }
 
-    if (current.step_type === 'ask_choice') {
+    if (isChoiceStep(current)) {
       const choices = current.choices ?? []
       const matched = choices.find(
         (c) => c.value === incoming || c.label === incoming,
@@ -302,11 +375,7 @@ export async function handleFlowIncoming(params: {
       return true
     }
 
-    if (
-      current.step_type === 'ask_text' ||
-      current.step_type === 'ask_date' ||
-      current.step_type === 'ask_time'
-    ) {
+    if (isTextAnswerStep(current)) {
       await saveAnswerAndContinue({
         channel: params.channel,
         lineUserId: params.lineUserId,
@@ -320,7 +389,6 @@ export async function handleFlowIncoming(params: {
       return true
     }
 
-    // Unexpected state on send_text
     await saveAnswerAndContinue({
       channel: params.channel,
       lineUserId: params.lineUserId,
@@ -398,6 +466,8 @@ export async function handleFlowPostback(params: {
     answer = params.paramsDate || params.paramsDatetime || ''
   } else if (current.step_type === 'ask_time') {
     answer = params.paramsTime || params.paramsDatetime || ''
+  } else if (current.step_type === 'flex') {
+    answer = params.paramsDate || params.paramsTime || params.paramsDatetime || params.data || ''
   } else {
     return false
   }

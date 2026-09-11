@@ -1,14 +1,12 @@
-{
-  "project_id": "line-admin",
-  "functions": {
-    "line-webhook": {
-      "verify_jwt": false
-    },
-    "send-message": {
-      "verify_jwt": true
-    },
-    "process-scheduled": {
-      "verify_jwt": false
-    }
-  }
-}
+# Supabase CLI config (must be TOML, not JSON)
+
+project_id = "bckuokdxdqglspovevvm"
+
+[functions.line-webhook]
+verify_jwt = false
+
+[functions.send-message]
+verify_jwt = true
+
+[functions.process-scheduled]
+verify_jwt = false
