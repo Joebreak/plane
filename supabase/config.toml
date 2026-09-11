@@ -1,0 +1,14 @@
+{
+  "project_id": "line-admin",
+  "functions": {
+    "line-webhook": {
+      "verify_jwt": false
+    },
+    "send-message": {
+      "verify_jwt": true
+    },
+    "process-scheduled": {
+      "verify_jwt": false
+    }
+  }
+}

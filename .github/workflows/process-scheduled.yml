@@ -1,0 +1,29 @@
+name: Process Scheduled LINE Messages
+
+# Fallback scheduler if pg_cron is not enabled.
+# Requires repository secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    # GitHub 最短實用間隔約 5 分鐘；要準到 1 分鐘請用 Supabase pg_cron
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke process-scheduled
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY secrets; skip."
+            exit 0
+          fi
+          curl -sS -X POST \
+            "$SUPABASE_URL/functions/v1/process-scheduled" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'

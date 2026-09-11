@@ -1,0 +1,7 @@
+-- Optional: GitHub Actions / external cron can also hit process-scheduled.
+-- This file documents the one-liner for Dashboard Cron or external schedulers.
+--
+-- curl -X POST \
+--   "https://YOUR_PROJECT_REF.supabase.co/functions/v1/process-scheduled" \
+--   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
+--   -H "Content-Type: application/json"

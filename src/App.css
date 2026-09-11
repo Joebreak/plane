@@ -1,0 +1,406 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.topbar nav a {
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.topbar nav a.nav-active,
+.topbar nav a:hover {
+  background: #e8f8ee;
+  color: var(--accent-ink);
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.login-card {
+  width: min(100%, 380px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.login-card h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.login-card label,
+.schedule-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+.login-card input,
+.schedule-form input,
+.schedule-form select,
+.schedule-form textarea,
+.composer textarea {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+}
+
+.inbox-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  min-height: 0;
+}
+
+.conversation-list,
+.message-panel,
+.schedule-form,
+.schedule-list {
+  background: var(--surface);
+}
+
+.conversation-list {
+  border-right: 1px solid var(--line);
+  overflow: auto;
+}
+
+.panel-title {
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+}
+
+.conversation-list ul,
+.schedule-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.conv-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-weight: 400;
+}
+
+.conv-item.active,
+.conv-item:hover {
+  background: #f0faf4;
+}
+
+.conv-name {
+  font-weight: 650;
+}
+
+.conv-preview,
+.conv-time {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.message-list {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: linear-gradient(180deg, #f7f9fb, #eef2f5);
+}
+
+.bubble {
+  max-width: min(70%, 520px);
+  padding: 0.65rem 0.8rem;
+  border-radius: 12px;
+}
+
+.bubble.in {
+  align-self: flex-start;
+  background: var(--in);
+}
+
+.bubble.out {
+  align-self: flex-end;
+  background: var(--out);
+}
+
+.bubble-meta {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.empty-state {
+  margin: auto;
+  color: var(--muted);
+}
+
+.schedule-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) 1fr;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.schedule-form,
+.schedule-list {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem;
+}
+
+.schedule-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  height: fit-content;
+}
+
+.schedule-form h2,
+.schedule-list h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.schedule-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.schedule-item > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #eef2f6;
+  color: var(--muted);
+}
+
+.status-pending {
+  background: #fff4d6;
+  color: #7a5a00;
+}
+
+.status-sent {
+  background: #dff7e8;
+  color: #145c32;
+}
+
+.status-failed {
+  background: #fde2e2;
+  color: #8b1e1e;
+}
+
+.status-cancelled {
+  background: #eceff3;
+  color: #536274;
+}
+
+.accounts-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) 1fr;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.accounts-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem;
+}
+
+.accounts-panel h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.admin-list,
+.channel-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.admin-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.channel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.channel-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+.channel-form input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.webhook-preview {
+  font-size: 0.85rem;
+  word-break: break-all;
+  margin: 0.35rem 0;
+}
+
+.webhook-preview code,
+.channel-item code {
+  background: #eef2f6;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+}
+
+.channel-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.channel-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.channel-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.step-list {
+  margin: 0.75rem 0 1rem;
+  padding-left: 1.1rem;
+}
+
+.accounts-panel h3 {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+}
+
+@media (max-width: 860px) {
+  .inbox-layout,
+  .schedule-layout,
+  .accounts-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .conversation-list {
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+  }
+}
