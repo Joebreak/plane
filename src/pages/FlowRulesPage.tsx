@@ -34,11 +34,26 @@ export function FlowRulesPage() {
   const [stepKey, setStepKey] = useState('')
   const [stepType, setStepType] = useState<FlowStepType>('text')
   const [promptText, setPromptText] = useState('')
+  const [titleText, setTitleText] = useState('')
   const [fieldKey, setFieldKey] = useState('')
-  const [choicesText, setChoicesText] = useState('')
   const [confirmA, setConfirmA] = useState('是')
   const [confirmB, setConfirmB] = useState('否')
   const [flexJson, setFlexJson] = useState('')
+  const [buttons, setButtons] = useState<
+    Array<{ action: 'message' | 'date' | 'time'; label: string; value: string }>
+  >([
+    { action: 'message', label: '', value: '' },
+    { action: 'message', label: '', value: '' },
+    { action: 'message', label: '', value: '' },
+    { action: 'message', label: '', value: '' },
+  ])
+
+  function updateButton(
+    index: number,
+    patch: Partial<{ action: 'message' | 'date' | 'time'; label: string; value: string }>,
+  ) {
+    setButtons((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)))
+  }
 
   const selectedFlow = useMemo(
     () => flows.find((f) => f.id === selectedFlowId) ?? null,
@@ -124,29 +139,46 @@ export function FlowRulesPage() {
     if (data) setSelectedFlowId(data.id)
   }
 
+  function nextUniqueStepKey(preferred?: string) {
+    const used = new Set(steps.map((s) => s.step_key))
+    const base = preferred?.trim()
+    if (base && !used.has(base)) return base
+    if (base && used.has(base)) {
+      let n = 2
+      while (used.has(`${base}_${n}`)) n += 1
+      return `${base}_${n}`
+    }
+    let n = steps.length + 1
+    while (used.has(`step_${n}`)) n += 1
+    return `step_${n}`
+  }
+
   async function addStep(e: FormEvent) {
     e.preventDefault()
     if (!selectedFlowId || !promptText.trim()) return
     setSaving(true)
     setError(null)
 
-    const key = stepKey.trim() || `step_${steps.length + 1}`
-    let choices: { label: string; value: string }[] = []
+    const key = nextUniqueStepKey(stepKey)
+    let choices: Array<{ label: string; value: string; action?: 'message' | 'date' | 'time' }> =
+      []
     let flexPayload: Record<string, unknown> | null = null
 
     if (stepType === 'buttons') {
-      choices = choicesText
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
+      choices = buttons
+        .filter((b) => b.label.trim())
         .slice(0, 4)
-        .map((line) => {
-          const [label, value] = line.split('|').map((s) => s.trim())
-          return { label: label || line, value: value || label || line }
-        })
+        .map((b) => ({
+          action: b.action,
+          label: b.label.trim().slice(0, 20),
+          value:
+            b.action === 'message'
+              ? b.value.trim() || b.label.trim()
+              : b.action,
+        }))
       if (choices.length < 1) {
         setSaving(false)
-        setError('Buttons 至少需要 1 個按鈕，最多 4 個（一行一個）')
+        setError('Buttons 請至少設定 1 個按鈕（填寫按鈕文字）')
         return
       }
     }
@@ -176,6 +208,7 @@ export function FlowRulesPage() {
       step_key: key,
       sort_order: steps.length + 1,
       step_type: stepType,
+      title_text: stepType === 'buttons' ? titleText.trim() || null : null,
       prompt_text: promptText.trim(),
       field_key: fieldKey.trim() || null,
       choices,
@@ -183,14 +216,24 @@ export function FlowRulesPage() {
     })
     setSaving(false)
     if (insertErr) {
-      setError(insertErr.message)
+      if (insertErr.message.includes('flow_steps_flow_id_step_key_key')) {
+        setError(`步驟代碼「${key}」已存在，請換一個代碼後再試`)
+      } else {
+        setError(insertErr.message)
+      }
       return
     }
     setStepKey('')
     setPromptText('')
+    setTitleText('')
     setFieldKey('')
-    setChoicesText('')
     setFlexJson('')
+    setButtons([
+      { action: 'message', label: '', value: '' },
+      { action: 'message', label: '', value: '' },
+      { action: 'message', label: '', value: '' },
+      { action: 'message', label: '', value: '' },
+    ])
     await loadSteps(selectedFlowId)
   }
 
@@ -407,11 +450,28 @@ export function FlowRulesPage() {
                       Array.isArray(s.choices) && (
                         <p className="muted">
                           按鈕：
-                          {(s.choices as { label: string; value: string }[])
-                            .map((c) => c.label)
+                          {(
+                            s.choices as {
+                              label: string
+                              value: string
+                              action?: string
+                            }[]
+                          )
+                            .map((c) => {
+                              const kind =
+                                c.action === 'date'
+                                  ? '日期'
+                                  : c.action === 'time'
+                                    ? '時間'
+                                    : '文字'
+                              return `${c.label}(${kind})`
+                            })
                             .join('、')}
                         </p>
                       )}
+                    {s.step_type === 'buttons' && s.title_text && (
+                      <p className="muted">標題：{s.title_text}</p>
+                    )}
                     {s.step_type === 'flex' && <p className="muted">Flex Message（自訂 JSON）</p>}
                     <div className="channel-actions">
                       <button type="button" className="ghost" onClick={() => void moveStep(s.id, -1)}>
@@ -444,11 +504,11 @@ export function FlowRulesPage() {
                   </select>
                 </label>
                 <label>
-                  步驟代碼（選填）
+                  步驟代碼（選填，同一流程內不可重複）
                   <input
                     value={stepKey}
                     onChange={(e) => setStepKey(e.target.value)}
-                    placeholder="例如 step_1"
+                    placeholder="空白則自動產生 step_1、step_2…"
                   />
                 </label>
 
@@ -461,15 +521,18 @@ export function FlowRulesPage() {
                         onChange={(e) => setPromptText(e.target.value)}
                         rows={3}
                         required
-                        placeholder="請輸入要顯示的說明，使用者接著會回覆一個填寫框內容"
+                        placeholder="例如：你選擇了 {a1}，謝謝！"
                       />
                     </label>
+                    <p className="field-hint">
+                      可用先前步驟的欄位名帶入，例如 <code>{'{a1}'}</code>。未填「答案欄位」時只顯示文字並繼續下一步；有填欄位則會再等使用者輸入。
+                    </p>
                     <label>
                       答案存成欄位名（選填）
                       <input
                         value={fieldKey}
                         onChange={(e) => setFieldKey(e.target.value)}
-                        placeholder="例如：備註"
+                        placeholder="例如：備註（空白＝只顯示、不收集）"
                       />
                     </label>
                   </>
@@ -478,30 +541,78 @@ export function FlowRulesPage() {
                 {stepType === 'buttons' && (
                   <>
                     <label>
-                      按鈕上方說明文字
+                      標題 title（選填，顯示在說明上方）
+                      <input
+                        value={titleText}
+                        onChange={(e) => setTitleText(e.target.value)}
+                        placeholder="例如：訂單通知"
+                        maxLength={40}
+                      />
+                    </label>
+                    <label>
+                      說明文字 text
                       <textarea
                         value={promptText}
                         onChange={(e) => setPromptText(e.target.value)}
                         rows={2}
                         required
+                        placeholder="例如：喝酒嗎／您的訂單已經成立，請選擇操作。"
                       />
                     </label>
-                    <label>
-                      按鈕（最多 4 個，一行一個；可用 顯示|值）
-                      <textarea
-                        value={choicesText}
-                        onChange={(e) => setChoicesText(e.target.value)}
-                        rows={4}
-                        required
-                        placeholder={'選項A\n選項B\n選項C\n選項D'}
-                      />
-                    </label>
+                    <div className="button-slots">
+                      <p className="field-hint">最多 4 個按鈕，每個可選：文字訊息 / 日期 / 時間</p>
+                      {buttons.map((b, index) => (
+                        <div key={index} className="button-slot">
+                          <strong>按鈕 {index + 1}</strong>
+                          <label>
+                            類型
+                            <select
+                              value={b.action}
+                              onChange={(e) =>
+                                updateButton(index, {
+                                  action: e.target.value as 'message' | 'date' | 'time',
+                                })
+                              }
+                            >
+                              <option value="message">文字訊息</option>
+                              <option value="date">選擇日期</option>
+                              <option value="time">選擇時間</option>
+                            </select>
+                          </label>
+                          <label>
+                            按鈕文字 label
+                            <input
+                              value={b.label}
+                              onChange={(e) => updateButton(index, { label: e.target.value })}
+                              placeholder={
+                                b.action === 'date'
+                                  ? '例如：選擇日期'
+                                  : b.action === 'time'
+                                    ? '例如：選擇時間'
+                                    : '例如：喝'
+                              }
+                              maxLength={20}
+                            />
+                          </label>
+                          {b.action === 'message' && (
+                            <label>
+                              使用者點擊後送出的文字
+                              <input
+                                value={b.value}
+                                onChange={(e) => updateButton(index, { value: e.target.value })}
+                                placeholder="空白則等於按鈕文字"
+                              />
+                            </label>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                     <label>
                       答案存成欄位名（選填）
                       <input
                         value={fieldKey}
                         onChange={(e) => setFieldKey(e.target.value)}
-                        placeholder="例如：選項"
+                        placeholder="例如：a1"
                       />
                     </label>
                   </>

@@ -343,9 +343,10 @@ export interface Database {
           step_key: string
           sort_order: number
           step_type: FlowStepType
+          title_text: string | null
           prompt_text: string
           field_key: string | null
-          choices: { label: string; value: string }[]
+          choices: { label: string; value: string; action?: 'message' | 'date' | 'time' }[]
           flex_json: Record<string, unknown> | null
           created_at: string
           updated_at: string
@@ -356,9 +357,10 @@ export interface Database {
           step_key: string
           sort_order?: number
           step_type?: FlowStepType
+          title_text?: string | null
           prompt_text: string
           field_key?: string | null
-          choices?: { label: string; value: string }[]
+          choices?: { label: string; value: string; action?: 'message' | 'date' | 'time' }[]
           flex_json?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string
@@ -369,9 +371,10 @@ export interface Database {
           step_key?: string
           sort_order?: number
           step_type?: FlowStepType
+          title_text?: string | null
           prompt_text?: string
           field_key?: string | null
-          choices?: { label: string; value: string }[]
+          choices?: { label: string; value: string; action?: 'message' | 'date' | 'time' }[]
           flex_json?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string

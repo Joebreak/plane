@@ -373,6 +373,26 @@ button.ghost {
   font-size: 0.78rem;
 }
 
+.button-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.button-slot {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #fafbfc;
+}
+
+.button-slot strong {
+  font-size: 0.9rem;
+}
+
 .channel-form input {
   border: 1px solid var(--line);
   border-radius: 8px;

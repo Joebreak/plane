@@ -6,7 +6,12 @@ import {
   type LineChannel,
 } from './line.ts'
 
-export type FlowChoice = { label: string; value: string }
+export type FlowChoice = {
+  label: string
+  value: string
+  /** message = 回傳文字；date / time = LINE datetimepicker */
+  action?: 'message' | 'date' | 'time'
+}
 
 export type FlowStepType =
   | 'text'
@@ -27,6 +32,7 @@ export type FlowStep = {
   sort_order: number
   step_type: FlowStepType
   prompt_text: string
+  title_text?: string | null
   field_key: string | null
   choices: FlowChoice[] | null
   flex_json?: Record<string, unknown> | null
@@ -59,37 +65,91 @@ function previewOfMessages(messages: Record<string, unknown>[]) {
   return '[訊息]'
 }
 
-function messageActions(choices: FlowChoice[], limit: number) {
-  return choices.slice(0, limit).map((c) => ({
-    type: 'message',
-    label: c.label.slice(0, 20),
-    text: c.value.slice(0, 300),
-  }))
+/** Replace {field_key} placeholders with session answers. Unknown keys stay as-is. */
+export function applyAnswerTemplate(
+  text: string,
+  answers: Record<string, string> = {},
+): string {
+  return text.replace(/\{([a-zA-Z0-9_\u4e00-\u9fff]+)\}/g, (full, key: string) => {
+    if (Object.prototype.hasOwnProperty.call(answers, key)) {
+      return answers[key] ?? ''
+    }
+    return full
+  })
 }
 
-export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
+function buildButtonActions(step: FlowStep, choices: FlowChoice[], limit: number) {
+  return choices.slice(0, limit).map((c, index) => {
+    const label = (c.label || c.value || `選項${index + 1}`).slice(0, 20)
+    const action = c.action || 'message'
+    if (action === 'date') {
+      return {
+        type: 'datetimepicker',
+        label,
+        data: `flow_step=${step.step_key}&mode=date&btn=${index}`,
+        mode: 'date',
+      }
+    }
+    if (action === 'time') {
+      return {
+        type: 'datetimepicker',
+        label,
+        data: `flow_step=${step.step_key}&mode=time&btn=${index}`,
+        mode: 'time',
+      }
+    }
+    return {
+      type: 'message',
+      label,
+      text: (c.value || c.label || label).slice(0, 300),
+    }
+  })
+}
+
+export function buildStepMessages(
+  step: FlowStep,
+  answers: Record<string, string> = {},
+): Record<string, unknown>[] {
   const choices = step.choices ?? []
+  const prompt = applyAnswerTemplate(step.prompt_text, answers)
+  const title = step.title_text?.trim()
+    ? applyAnswerTemplate(step.title_text.trim(), answers)
+    : ''
 
   if (step.step_type === 'buttons' || step.step_type === 'ask_choice') {
-    const actions = messageActions(choices, 4)
+    const actions = buildButtonActions(step, choices, 4)
     if (actions.length === 0) {
-      return [{ type: 'text', text: step.prompt_text }]
+      return [{ type: 'text', text: prompt }]
+    }
+    const template: Record<string, unknown> = {
+      type: 'buttons',
+      text: prompt.slice(0, 160),
+      actions,
+    }
+    if (title) {
+      template.title = title.slice(0, 40)
     }
     return [
       {
         type: 'template',
-        altText: step.prompt_text,
-        template: {
-          type: 'buttons',
-          text: step.prompt_text.slice(0, 160),
-          actions,
-        },
+        altText: title || prompt,
+        template,
       },
     ]
   }
 
   if (step.step_type === 'confirm') {
-    const actions = messageActions(choices, 2)
+    const actions = buildButtonActions(step, choices, 2).map((a) => {
+      // confirm template only allows message actions
+      if (a.type !== 'message') {
+        return {
+          type: 'message',
+          label: String(a.label || '確認').slice(0, 20),
+          text: String(a.label || '確認').slice(0, 300),
+        }
+      }
+      return a
+    })
     while (actions.length < 2) {
       actions.push({
         type: 'message',
@@ -100,10 +160,10 @@ export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
     return [
       {
         type: 'template',
-        altText: step.prompt_text,
+        altText: prompt,
         template: {
           type: 'confirm',
-          text: step.prompt_text.slice(0, 240),
+          text: prompt.slice(0, 240),
           actions,
         },
       },
@@ -113,12 +173,12 @@ export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
   if (step.step_type === 'flex') {
     const contents = step.flex_json
     if (!contents || typeof contents !== 'object') {
-      return [{ type: 'text', text: step.prompt_text || '（Flex 尚未設定）' }]
+      return [{ type: 'text', text: prompt || '（Flex 尚未設定）' }]
     }
     return [
       {
         type: 'flex',
-        altText: step.prompt_text || '訊息',
+        altText: prompt || '訊息',
         contents,
       },
     ]
@@ -128,10 +188,10 @@ export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
     return [
       {
         type: 'template',
-        altText: step.prompt_text,
+        altText: prompt,
         template: {
           type: 'buttons',
-          text: step.prompt_text.slice(0, 160),
+          text: prompt.slice(0, 160),
           actions: [
             {
               type: 'datetimepicker',
@@ -149,10 +209,10 @@ export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
     return [
       {
         type: 'template',
-        altText: step.prompt_text,
+        altText: prompt,
         template: {
           type: 'buttons',
-          text: step.prompt_text.slice(0, 160),
+          text: prompt.slice(0, 160),
           actions: [
             {
               type: 'datetimepicker',
@@ -167,7 +227,15 @@ export function buildStepMessages(step: FlowStep): Record<string, unknown>[] {
   }
 
   // text / ask_text / send_text
-  return [{ type: 'text', text: step.prompt_text }]
+  return [{ type: 'text', text: prompt }]
+}
+
+/** 純顯示、不等待回覆：舊 send_text，或 text 且未設欄位名 */
+function isDisplayOnlyStep(step: FlowStep) {
+  return (
+    step.step_type === 'send_text' ||
+    (step.step_type === 'text' && !step.field_key?.trim())
+  )
 }
 
 function isChoiceStep(step: FlowStep) {
@@ -179,13 +247,13 @@ function isChoiceStep(step: FlowStep) {
 }
 
 function isTextAnswerStep(step: FlowStep) {
+  if (isDisplayOnlyStep(step)) return false
   return (
     step.step_type === 'text' ||
     step.step_type === 'ask_text' ||
     step.step_type === 'flex' ||
     step.step_type === 'ask_date' ||
-    step.step_type === 'ask_time' ||
-    step.step_type === 'send_text'
+    step.step_type === 'ask_time'
   )
 }
 
@@ -268,9 +336,11 @@ async function presentStep(params: {
   let cursor: FlowStep | undefined = params.startFrom
   let lastAsk: FlowStep | undefined
 
+  const answers = params.answers ?? {}
+
   while (cursor) {
-    messages.push(...buildStepMessages(cursor))
-    if (cursor.step_type === 'send_text') {
+    messages.push(...buildStepMessages(cursor, answers))
+    if (isDisplayOnlyStep(cursor)) {
       const i = params.steps.findIndex((s) => s.step_key === cursor!.step_key)
       cursor = params.steps[i + 1]
       if (!cursor) {
@@ -279,7 +349,7 @@ async function presentStep(params: {
           .update({
             status: 'completed',
             current_step_key: null,
-            answers: params.answers ?? {},
+            answers,
           })
           .eq('id', params.sessionId)
         break
@@ -295,7 +365,7 @@ async function presentStep(params: {
   }
 
   if (messages.length === 0 && lastAsk) {
-    messages.push(...buildStepMessages(lastAsk))
+    messages.push(...buildStepMessages(lastAsk, answers))
   }
 
   if (messages.length > 0) {
@@ -358,7 +428,7 @@ export async function handleFlowIncoming(params: {
           lineUserId: params.lineUserId,
           lineUserUuid: params.lineUserUuid,
           replyToken: params.replyToken,
-          messages: buildStepMessages(current),
+          messages: buildStepMessages(current, session.answers ?? {}),
         })
         return true
       }
@@ -462,8 +532,13 @@ export async function handleFlowPostback(params: {
   if (!current) return false
 
   let answer = ''
-  if (current.step_type === 'ask_date') {
-    answer = params.paramsDate || params.paramsDatetime || ''
+  if (current.step_type === 'ask_date' || current.step_type === 'buttons') {
+    // buttons 的日期／時間也走 postback
+    if (current.step_type === 'buttons') {
+      answer = params.paramsDate || params.paramsTime || params.paramsDatetime || ''
+    } else {
+      answer = params.paramsDate || params.paramsDatetime || ''
+    }
   } else if (current.step_type === 'ask_time') {
     answer = params.paramsTime || params.paramsDatetime || ''
   } else if (current.step_type === 'flex') {
@@ -514,23 +589,6 @@ async function saveAnswerAndContinue(params: {
         answers,
       })
       .eq('id', params.session.id)
-
-    const summaryLines = Object.entries(answers).map(([k, v]) => `・${k}：${v}`)
-    await sendBotMessages({
-      channel: params.channel,
-      lineUserId: params.lineUserId,
-      lineUserUuid: params.lineUserUuid,
-      replyToken: params.replyToken,
-      messages: [
-        {
-          type: 'text',
-          text:
-            summaryLines.length > 0
-              ? `已完成填寫，資料如下：\n${summaryLines.join('\n')}`
-              : '已完成流程，謝謝。',
-        },
-      ],
-    })
     return
   }
 
